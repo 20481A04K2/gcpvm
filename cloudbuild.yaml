@@ -7,7 +7,7 @@ steps:
       - '-c'
       - |
         apt-get update && apt-get install -y zip
-        zip -r app-source.zip gcpvm
+        zip -r app-source.zip . -x "cloudbuild.yaml"
 
   # Step 2: Create GCE VM
   - name: 'gcr.io/cloud-builders/gcloud'
