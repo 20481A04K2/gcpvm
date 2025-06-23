@@ -1,13 +1,13 @@
 steps:
-  # Step 1: Zip the source code
+  # Step 1: Zip the gcpvm folder
   - name: 'ubuntu'
-    id: 'Zip source code'
+    id: 'Zip gcpvm folder'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         apt-get update && apt-get install -y zip
-        zip -r app-source.zip . -x "*.git*" "*cloudbuild.yaml*" 
+        zip -r app-source.zip gcpvm
 
   # Step 2: Create GCE VM
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -27,18 +27,18 @@ steps:
       - --service-account=956387703564-compute@developer.gserviceaccount.com
       - --project=mythic-beanbag-463309-e9
 
-  # Step 3: Copy source zip to VM
+  # Step 3: Copy app-source.zip to VM
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Copy app-source.zip to VM'
     args:
       - compute
       - scp
       - app-source.zip
-      - vij1542044@my-vm-instance:/home/vij1542044
+      - sajja_vamsi@my-vm-instance:/home/sajja_vamsi
       - --zone=asia-east1-b
       - --project=mythic-beanbag-463309-e9
 
-  # Step 4: Create startup script locally
+  # Step 4: Create startup script
   - name: 'ubuntu'
     id: 'Create startup script'
     entrypoint: 'bash'
@@ -49,21 +49,21 @@ steps:
         #!/bin/bash
         set -e
 
-        # Install required packages
+        # Install necessary packages
         sudo apt-get update
         sudo apt-get install -y unzip python3 python3-pip
 
-        # Unzip source code
-        unzip -o /home/vij1542044/app-source.zip -d /home/vij1542044/app
+        # Unzip source
+        unzip -o /home/sajja_vamsi/app-source.zip -d /home/sajja_vamsi
 
-        # Navigate to app folder and install dependencies if requirements.txt exists
-        cd /home/vij1542044/app
-        if [ -f requirements.txt ]; then
-          pip3 install -r requirements.txt
-        fi
+        # Change to source directory
+        cd /home/sajja_vamsi/gcpvm
 
-        # Run the Python app using nohup in the background
-        nohup python3 app.py > output.log 2>&1 &
+        # Install Flask directly
+        pip3 install flask
+
+        # Run the app in the background
+        nohup python3 app.py > app.log 2>&1 &
         EOF
 
   # Step 5: Copy startup script to VM
@@ -73,20 +73,20 @@ steps:
       - compute
       - scp
       - startup.sh
-      - vij1542044@my-vm-instance:/home/vij1542044
+      - sajja_vamsi@my-vm-instance:/home/sajja_vamsi
       - --zone=asia-east1-b
       - --project=mythic-beanbag-463309-e9
 
-  # Step 6: SSH into VM and run startup script
+  # Step 6: Run startup script on VM
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Run startup script on VM'
     args:
       - compute
       - ssh
-      - vij1542044@my-vm-instance
+      - sajja_vamsi@my-vm-instance
       - --zone=asia-east1-b
       - --project=mythic-beanbag-463309-e9
-      - --command=bash /home/vij1542044/startup.sh
+      - --command=bash /home/sajja_vamsi/startup.sh
 
 options:
   logging: CLOUD_LOGGING_ONLY
